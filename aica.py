@@ -1,6 +1,4 @@
-import gradio as gr
 import random
-from PIL import Image
 import requests
 from io import BytesIO
 import sys, os
@@ -11,6 +9,12 @@ import torch
 import openai
 from diffusers import DiffusionPipeline, EulerAncestralDiscreteScheduler, DPMSolverMultistepScheduler, \
     EulerDiscreteScheduler
+from gtts import gTTS
+from datetime import datetime
+import gradio as gr
+
+date_time_obj = datetime.now()
+timestamp_str = date_time_obj.strftime("%Y-%m-%d_%H-%M-%S")
 
 # ######################## diffusion models ######################
 diffusion_model = "runwayml/stable-diffusion-v1-5"
@@ -18,11 +22,13 @@ diffusion_model = "runwayml/stable-diffusion-v1-5"
 num_diffusion_steps = 5
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
+print("device:", device)
+
 print("My OS:", sys.platform)
-my_os = "win32"  # "windows" , sys.platform
+my_os = sys.platform  # sys.platform # "windows" , sys.platform
 # sys.platform not in ["linux", "linux2"]
 
-
+# if no GPU, use example images
 if device == "cuda":
 
     scheduler_list = ["DPMSolverMultistep", "EulerAncestralDiscrete", "EulerDiscrete"]
@@ -74,6 +80,7 @@ if device == "cuda":
 
         return images
 
+
 else:
     im_dir = "images"
     im1 = os.path.join(im_dir, "bookworm_1.png")
@@ -95,38 +102,15 @@ else:
         l = [(Image.open(card), seed) for card in im_paths[1:]]
         return [(input_image, seed)] + l
 
+
 ########## text to speech #############
 
 
-if my_os in ["linux", "linux2"]:
-    from huggingface_hub import hf_hub_download
-    import wave
-    from balacoon_tts import TTS
+def text_to_speech(text, output_path="message.wav"):
+    myobj = gTTS(text=text, lang='en', slow=False)
+    myobj.save(output_path)
+    return output_path
 
-    # download models
-    tts_1 = hf_hub_download(repo_id="balacoon/tts", filename="en_us_hifi92_e2ept.addon")
-
-
-    # tts_2 = hf_hub_download(repo_id="balacoon/tts", filename="en_us_cmuartic_e2ept.addon")
-
-    def text_to_speech(text, output_path="message.wav"):
-        tts = TTS(tts_1)
-
-        supported_speakers = tts.get_speakers()
-        speaker = supported_speakers[-1] if supported_speakers else ""
-
-        # run synthesis
-        audio = tts.synthesize(text, speaker)
-
-        with wave.open(output_path, "w") as fp:
-            fp.setparams((1, 2, 24000, len(audio), "NONE", "NONE"))
-            fp.writeframes(audio)
-
-        return audio  # numpy
-
-else:
-    def text_to_speech(text, output_path="message.wav"):
-        return "message.wav"
 
 ############################### read json files #############
 json_dir = "json_files"
@@ -177,7 +161,7 @@ def add_border_title(img, title, font, font_size=50, color="white"):
 
 def add_message(input_img, recipient, sender, message, msg_font=msg_fonts[0], msg_font_size=25, msg_color="black"):
     """takes a chosen image with title and returns img with title and message"""
-
+    msg_font = msg_fonts[0]
     img = input_img.copy()
     msg_req = requests.get(msg_font)
     msg_font = ImageFont.truetype(BytesIO(msg_req.content), msg_font_size)
@@ -212,20 +196,6 @@ def get_cards_with_diff_title_styles(input_card, title, seed, fonts=title_fonts)
         img = add_border_title(input_card, title, f)
         outputs.append((img, seed))
     return outputs
-
-
-# ##########################test image functions ##############
-
-# out = add_message(img="diffusion1.png", recipient="mom", sender="me", message="Blaaaaa")
-#
-# out.show()
-if False:
-    o = get_cards_with_diff_title_styles(input_card="diffusion1.png", title="Happy Birthday my mom Happy Birth",
-                                         seed=2)
-    print(o)
-    for i, seed in o:
-        i.show()
-    sys.exit()
 
 
 # ######################## chatbot config ######################
@@ -306,14 +276,65 @@ greeting = f"Hello! I am AICA, your AI card generator. What kind of card would y
 
 
 gpt3 = "text-davinci-003"  # "text-davinci-003", "text-curie-001",
-try:
-    openai.api_key = "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"
+
+gpt3_key_succeed = False
+
+while not gpt3_key_succeed:
     try:
-        openai.api_key = "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"
+        openai.api_key = "sk-fWGJqwTkVnVQ3dIbWyDST3BlbkFJH923622yJR"
+        completion = openai.Completion.create(
+            engine="text-curie-001",
+            prompt="write number 1:",
+            n=1,
+            max_tokens=5,
+        )
+        gpt3_key_succeed = True
+        break
     except:
-        openai.api_key = "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"
-except:
-    openai.api_key = "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"
+        pass
+
+    try:
+        openai.api_key = "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"
+        completion = openai.Completion.create(
+            engine="text-curie-001",
+            prompt="write number 1:",
+            n=1,
+            max_tokens=5,
+        )
+        gpt3_key_succeed = True
+        break
+    except:
+        pass
+
+    try:
+        openai.api_key = "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"
+        completion = openai.Completion.create(
+            engine="text-curie-001",
+            prompt="write number 1:",
+            n=1,
+            max_tokens=5,
+        )
+        gpt3_key_succeed = True
+        break
+    except:
+        pass
+
+    try:
+        openai.api_key = "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"
+        completion = openai.Completion.create(
+            engine="text-curie-001",
+            prompt="write number 1:",
+            n=1,
+            max_tokens=5,
+        )
+
+        gpt3_key_succeed = True
+        break
+    except:
+        print("openai key is not valid...")
+        sys.exit()
+
+print("openai.api_key", openai.api_key)
 
 
 # possible parameters: https://beta.openai.com/docs/api-reference/completions/create
@@ -428,11 +449,6 @@ def generate_poem(story, card_type):
 history = []
 bot_actions = []
 card_spec = {}
-from datetime import datetime
-
-date_time_obj = datetime.now()
-timestamp_str = date_time_obj.strftime("%Y-%m-%d_%H:%M:%S")
-print('Current Timestamp : ', timestamp_str)
 
 
 def chatbot(message, cards):
@@ -645,13 +661,11 @@ def chatbot(message, cards):
         title = message
         card_spec["title"] = title
         card = cards[-1][0]
-        # card_with_title = (add_title(card, title), seed)  # todo
-        cards = get_cards_with_diff_title_styles(card, title, seed)  # generate_cards("") #[card_with_title]
+
+        cards = get_cards_with_diff_title_styles(card, title, seed)
 
         response += "We have put the title to your card."
         bot_actions.append("return_card_with_title")
-        # bot_actions.append("title_done")
-        # response = f"Do you want to put a message below your card? {enum_list(yes_no_options)}"
 
 
     elif bot_actions[-1] == "picked_best_card_with_title":
@@ -705,12 +719,12 @@ def chatbot(message, cards):
                            " Or type 1 to generate a poem based only on your card type."
                 user_choices = ["For example,"] + add_bullet_points(story_suggestions[card_spec["type"]])
 
-                user_choices += ["Or type 1 to generate a poem based on your card type."]
+                user_choices += [" \nOr type 1 to generate a poem based on your card type."]
                 bot_actions.append("user_wants_poem")
             else:  # user pick "your idea"
                 response = "Tell us what we should write under the card."
                 bot_actions.append("user_gave_message")
-                # bot_actions.append("user_chose_message")
+
         else:
             response = f"How do you want to generate the message? Choose a number."
             user_choices = enum_list(message_options)
@@ -751,7 +765,6 @@ def chatbot(message, cards):
                    " Type a number to pick the next action."
         user_choices = enum_list(improve_text_options)
         bot_actions.append("improve_message")
-
 
 
     elif bot_actions[-1] == "improve_message":
@@ -833,13 +846,11 @@ def chatbot(message, cards):
             user_choices = enum_list(message_suggestions)
 
     if bot_actions[-1] == "return_cards":
-        # card_options = list(range(1, len(card_variations_options) + 1))
         response += choose_the_best_card
         bot_actions.append("picked_best_card")
         user_choices = enum_list(card_variations_options)
 
     if bot_actions[-1] == "return_card_with_title":
-        # card_options = list(range(1, len(card_variations_options) + 1))
         response += choose_the_best_card
         bot_actions.append("picked_best_card_with_title")
         user_choices = enum_list(card_variations_options)
@@ -855,16 +866,15 @@ def chatbot(message, cards):
         bot_actions.append("final")
 
     if bot_actions[-1] == "final":
-        if my_os in ["linux", "linux2"]:
-            if "title" in card_spec and "message" in card_spec:
-                response += " You can also click the play button below your card to read the message out loud."
-                response += thank_you_message
-                text_to_say = card_spec["title"] + ". " + card_spec["message"]
-                print("text_to_say:", text_to_say)
-                audio_name = "message" + timestamp_str + ".wav"
-                text_to_speech(text_to_say, output_path=audio_name)  # save speech file
-        else:
+
+        if "title" in card_spec and "message" in card_spec:
+            response += " You can also click the play button below your card to read the message out loud."
             response += thank_you_message
+            text_to_say = card_spec["title"] + ". " + card_spec["message"]
+            print("text_to_say:", text_to_say)
+            audio_name = "message" + timestamp_str + ".wav"
+            text_to_speech(text_to_say, output_path=audio_name)  # save speech file
+
         bot_actions.append("final_add_audio")
 
     if not response:
@@ -905,11 +915,6 @@ def chatbot(message, cards):
 def put_audio(text):
     if text:
         return gr.update(value=text, visible=True)
-
-
-def put_audio_windows(text):
-    if text:
-        return gr.update(value="audio.wav", visible=True)
 
 
 ################## gradio ######################
@@ -954,27 +959,14 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
             # update_audio_windows = gr.Textbox(placeholder="temp", visible=False, lines=1, max_lines=100)
 
             audio = gr.Audio(visible=False)
-            if my_os in ["linux", "linux2"]:
-                audio_btn = gr.Button("audio")
+            audio_btn = gr.Button("audio")
 
-        # text1.change(chatbot1,text1, display1)
+        button1.click(chatbot, scroll_to_output=True, inputs=[text1, cards], outputs=[display1, cards,
+                                                                                      out_text, update_cards,
+                                                                                      user_info,
+                                                                                      update_audio])  # out_text
+        audio_btn.click(put_audio, inputs=update_audio, outputs=audio)
 
-        # should be im path from
-
-        if my_os in ["linux", "linux2"]:
-            button1.click(chatbot, scroll_to_output=True, inputs=[text1, cards], outputs=[display1, cards,
-                                                                                          out_text, update_cards,
-                                                                                          user_info,
-                                                                                          update_audio])  # out_text
-            audio_btn.click(put_audio, inputs=update_audio, outputs=audio)
-        else:
-            button1.click(chatbot, scroll_to_output=True, inputs=[text1, cards], outputs=[display1, cards,
-                                                                                          out_text, update_cards,
-                                                                                          user_info,
-                                                                                          update_audio])  # out_text
-            # audio_btn.click(put_audio_windows, inputs=update_audio, outputs=audio)
-        # f = gr.File("im1.png", file_types=["image"], interactive=True, visible=True)
-        # button_save.click(lambda x:x,inputs=[f],outputs=[f] )
         update_cards.change(image_path_to_image, inputs=cards, outputs=gallery)
 
 demo.launch(debug=True)

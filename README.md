@@ -15,4 +15,11 @@ AI card generator
 # pip install -q pynvml
 # pip install -q diffusers["torch"]
 # pip install accelerate
+
+!pip install -q huggingface_hub
+!pip install  -q -i https://pypi.fury.io/balacoon/ balacoon-tts
+!pip install  -q balacoon-tts==0.0.2
+
+!pip install -q gTTS==2.2.1
+#!pip install -q pdfminer.six==20201018
 ```
