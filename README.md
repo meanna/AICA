@@ -1,0 +1,2 @@
+# AICA
+AI card generator
