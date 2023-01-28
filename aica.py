@@ -90,7 +90,41 @@ else:
         l = [(Image.open(card), seed) for card in im_paths[1:]]
         return [(input_image, seed)] + l
 
-#####################################################
+########## text to speech #############
+
+from sys import platform
+
+if platform in ["linux", "linux2"]:
+    from huggingface_hub import hf_hub_download
+    import wave
+    from balacoon_tts import TTS
+
+    # download models
+    tts_1 = hf_hub_download(repo_id="balacoon/tts", filename="en_us_hifi92_e2ept.addon")
+
+
+    # tts_2 = hf_hub_download(repo_id="balacoon/tts", filename="en_us_cmuartic_e2ept.addon")
+
+    def text_to_speech(text, output_path="message.wav"):
+        tts = TTS(tts_1)
+
+        supported_speakers = tts.get_speakers()
+        speaker = supported_speakers[-1] if supported_speakers else ""
+
+        # run synthesis
+        audio = tts.synthesize(text, speaker)
+
+        with wave.open(output_path, "w") as fp:
+            fp.setparams((1, 2, 24000, len(audio), "NONE", "NONE"))
+            fp.writeframes(audio)
+
+        return audio  # numpy
+
+else:
+    def text_to_speech(text, output_path="message.wav"):
+        return "message.wav"
+
+############################### read json files #############
 json_dir = "json_files"
 
 json_files = ['fonts.json', 'prompt_suggestions.json', 'story_suggestions.json', 'image_styles.json',
@@ -242,25 +276,20 @@ improve_text_options_dict = {"correct grammar": "Correct grammar mistakes in thi
 improve_text_options = ["No, I do not want to change my message."] + ["Change my message."] + list(
     improve_text_options_dict)
 
-story_example = " Example1: 'I want to create a card for my mom. I love her so much." \
-                " She likes to cook for me. She is the best cook I know.'\n" \
-                " Example2: 'I want a birthday card for my mom. She likes dogs.'\n\n" \
-                " Or type 1 to skip."
-
-thank_you_message = "Thank you for using AICA:)"
+thank_you_message = " Enjoy! Thank you for using AICA:)"
 
 poem_options = ["Yes, I like it.", "No, I want to use my message."]
-good_bye_response = "The message is added to your card so we are finished now. Enjoy! " + thank_you_message
+card_finished_response = "The message is added to your card so we are finished now. "
 
-good_bye_response_poem = "The poem is added to your card so we are finished now. Enjoy! " + thank_you_message
+good_bye_response_poem = "The poem is added to your card so we are finished now. "
 
 story_example_ending = "\n\nOr type 1 to skip."
 
 good_bye_message = "Great. We're happy you're satisfied with the card." \
                    " Now you can download it and send it as e-card by email or print it out. " + thank_you_message
 yes_no_options = ["yes", "no"]
-title_options = ["use AICA card title suggestions", "you idea"]
-message_options = ["use AICA card message suggestions", "use AICA poem generator", "you idea"]
+title_options = ["use AICA suggestions", "you idea"]
+message_options = ["use AICA suggestions", "use AICA poem generator", "you idea"]
 next_steps_after_picking_best_card = ["I'm done", "I want to modify the card", "I want to add a title and a message"]
 
 response_after_card_generated = f"Great! Thank you. We have generated 4 cards for you. " \
@@ -269,14 +298,11 @@ response_after_card_generated = f"Great! Thank you. We have generated 4 cards fo
 greeting = f"Hello! I am AICA, your AI card generator. What kind of card would you like to generate? " \
            f"You can see the options on the right side. To choose your option, type a number (without a dot)."
 
-history = []
-bot_actions = []
-card_spec = {}
 # ######################## gpt3 ######################
 
 
 gpt3 = "text-davinci-003"  # "text-davinci-003", "text-curie-001",
-openai.api_key = "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"
+openai.api_key = "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"
 
 
 # possible parameters: https://beta.openai.com/docs/api-reference/completions/create
@@ -363,7 +389,7 @@ def generate_poem(story, card_type):
     model = gpt3
     max_tokens = 100
     num_texts = 3
-    if not story:
+    if not story or story == "1":
         # story = story_suggestions[card_type][-1]
         prompt = f"Please generate a short poem for a {card_type} card:"
 
@@ -388,6 +414,16 @@ def generate_poem(story, card_type):
 
 # ######################## chatbot ######################
 
+history = []
+bot_actions = []
+card_spec = {}
+from datetime import datetime
+
+date_time_obj = datetime.now()
+timestamp_str = date_time_obj.strftime("%Y-%m-%d_%H:%M:%S")
+print('Current Timestamp : ', timestamp_str)
+
+
 def chatbot(message, cards):
     response = ""
     print(bot_actions)
@@ -395,13 +431,14 @@ def chatbot(message, cards):
     print(cards)
     story_examples_ = []
     user_choices = ""
+    audio_name = ""
 
     if "type" in card_spec:
         story_suggestions_points = add_bullet_points(story_suggestions[card_spec["type"]])
         story_examples_ = ["Tell us about good memories between you and the recipient or give us a few keywords."] + [
             "\nFor examples,"] + story_suggestions_points + [story_example_ending]
 
-    if not bot_actions or bot_actions[-1] == "final":
+    if not bot_actions or bot_actions[-1] == "final_add_audio":
         response = greeting
         bot_actions.append("greeting")
         user_choices = enum_list(card_types)
@@ -503,6 +540,7 @@ def chatbot(message, cards):
         if message in [str(num) for num in options]:
             if message == "1":
                 response = good_bye_message
+
                 bot_actions.append("final")
             elif message == "2":
                 response = "You want to modify the card? Sure, then please give us a new prompt " \
@@ -652,8 +690,11 @@ def chatbot(message, cards):
                                " Please type any key to proceed."
                 bot_actions.append("user_gave_story_for_message")
             elif message == "2":  # poem
-                response = "You want to generate a poem? Sure, then type in a few keywords or a story."
+                response = "You want to generate a poem? Sure, then type in a few keywords or a story." \
+                           " Or type 1 to generate a poem based only on your card type."
                 user_choices = ["For example,"] + add_bullet_points(story_suggestions[card_spec["type"]])
+
+                user_choices += ["Or type 1 to generate a poem based on your card type."]
                 bot_actions.append("user_wants_poem")
             else:  # user pick "your idea"
                 response = "Tell us what we should write under the card."
@@ -666,7 +707,7 @@ def chatbot(message, cards):
 
     elif bot_actions[-1] == "user_wants_poem":
 
-        response = "Here are the generated poems based on your story/keywords, please take a look and choose a number."
+        response = "Here are the generated poems, please take a look and choose a number."
         poems = generate_poem(message, card_spec["type"])
         card_spec["poems"] = ["\n" + p + "\n" for p in poems]
         user_choices = enum_list(card_spec["poems"])
@@ -683,7 +724,9 @@ def chatbot(message, cards):
             seed = cards[-1][-1]
             cards = [(new_image, seed)]
             response = good_bye_response_poem
+
             bot_actions.append("final")
+
         else:
             response = f"Please choose a number listed in the option box."
             user_choices = enum_list(card_spec["poems"])
@@ -734,7 +777,7 @@ def chatbot(message, cards):
                                         card_spec["message"])
                 seed = cards[-1][-1]
                 cards = [(new_image, seed)]
-                response = good_bye_response
+                response = card_finished_response
                 bot_actions.append("final")
             elif message == "2":  # No, I want to use my message
                 bot_actions.append("user_gave_message")
@@ -770,7 +813,8 @@ def chatbot(message, cards):
             new_image = add_message(current_card, card_spec["recipient"], card_spec["sender"], card_message)
             seed = cards[-1][-1]
             cards = [(new_image, seed)]
-            response = good_bye_response
+            response = card_finished_response
+
             bot_actions.append("final")
         else:
 
@@ -795,11 +839,24 @@ def chatbot(message, cards):
         new_image = add_message(current_card, card_spec["recipient"], card_spec["sender"], m)
         seed = cards[-1][-1]
         cards = [(new_image, seed)]
-        response += good_bye_response
+        response += card_finished_response
+
         bot_actions.append("final")
 
+    if bot_actions[-1] == "final":
+        if platform in ["linux", "linux2"]:
+            if "title" in card_spec and "message" in card_spec:
+                response += " You can also click the play button below your card to read the message out loud."
+                response += thank_you_message
+                text_to_say = card_spec["title"] + ". " + card_spec["message"]
+                print("text_to_say:", text_to_say)
+                audio_name = "message" + timestamp_str + ".wav"
+                text_to_speech(text_to_say, output_path=audio_name)  # save speech file
+        else:
+            response += thank_you_message
+        bot_actions.append("final_add_audio")
+
     if not response:
-        print(">>>>>>>>>")
         response = greeting
         bot_actions.append("greeting")
         user_choices = enum_list(card_types)
@@ -829,20 +886,19 @@ def chatbot(message, cards):
 
     user_info = "\n".join(user_info)
     user_choices = "\n".join([str(i) for i in user_choices])
-    if len(history) == 1:
-        audio = "audio.wav"
-    else:
-        audio = "audio2.wav"
 
-    return history, cards, user_choices, cards, user_info, audio
-
-    return history, cards, user_choices, cards, user_info
+    print(audio_name)
+    return history, cards, user_choices, cards, user_info, audio_name
 
 
 def put_audio(text):
     if text:
         return gr.update(value=text, visible=True)
-    return None
+
+
+def put_audio_windows(text):
+    if text:
+        return gr.update(value="audio.wav", visible=True)
 
 
 ################## gradio ######################
@@ -895,7 +951,10 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
                                                                                       update_audio])  # out_text
         # should be im path from
 
-        audio_btn.click(put_audio, inputs=update_audio, outputs=audio)
+        if platform in ["linux", "linux2"]:
+            audio_btn.click(put_audio, inputs=update_audio, outputs=audio)
+        else:
+            audio_btn.click(put_audio_windows, inputs=update_audio, outputs=audio)
         # f = gr.File("im1.png", file_types=["image"], interactive=True, visible=True)
         # button_save.click(lambda x:x,inputs=[f],outputs=[f] )
         update_cards.change(image_path_to_image, inputs=cards, outputs=gallery)
