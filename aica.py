@@ -18,6 +18,11 @@ diffusion_model = "runwayml/stable-diffusion-v1-5"
 num_diffusion_steps = 5
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
+print("My OS:", sys.platform)
+my_os = "win32"  # "windows" , sys.platform
+# sys.platform not in ["linux", "linux2"]
+
+
 if device == "cuda":
 
     scheduler_list = ["DPMSolverMultistep", "EulerAncestralDiscrete", "EulerDiscrete"]
@@ -92,9 +97,8 @@ else:
 
 ########## text to speech #############
 
-from sys import platform
 
-if platform in ["linux", "linux2"]:
+if my_os in ["linux", "linux2"]:
     from huggingface_hub import hf_hub_download
     import wave
     from balacoon_tts import TTS
@@ -302,7 +306,14 @@ greeting = f"Hello! I am AICA, your AI card generator. What kind of card would y
 
 
 gpt3 = "text-davinci-003"  # "text-davinci-003", "text-curie-001",
-openai.api_key = "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"
+try:
+    openai.api_key = "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"
+    try:
+        openai.api_key = "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"
+    except:
+        openai.api_key = "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"
+except:
+    openai.api_key = "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"
 
 
 # possible parameters: https://beta.openai.com/docs/api-reference/completions/create
@@ -844,7 +855,7 @@ def chatbot(message, cards):
         bot_actions.append("final")
 
     if bot_actions[-1] == "final":
-        if platform in ["linux", "linux2"]:
+        if my_os in ["linux", "linux2"]:
             if "title" in card_spec and "message" in card_spec:
                 response += " You can also click the play button below your card to read the message out loud."
                 response += thank_you_message
@@ -939,22 +950,29 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
                                  label="Generated images", show_label=False, elem_id="gallery"
                                  ).style(grid=2, height="100")
 
-            update_audio = gr.Textbox(placeholder="temp", visible=True, lines=1, max_lines=100)
+            update_audio = gr.Textbox(placeholder="temp", visible=False, lines=1, max_lines=100)
+            # update_audio_windows = gr.Textbox(placeholder="temp", visible=False, lines=1, max_lines=100)
+
             audio = gr.Audio(visible=False)
-            audio_btn = gr.Button("audio")
+            if my_os in ["linux", "linux2"]:
+                audio_btn = gr.Button("audio")
 
         # text1.change(chatbot1,text1, display1)
 
-        button1.click(chatbot, scroll_to_output=True, inputs=[text1, cards], outputs=[display1, cards,
-                                                                                      out_text, update_cards,
-                                                                                      user_info,
-                                                                                      update_audio])  # out_text
         # should be im path from
 
-        if platform in ["linux", "linux2"]:
+        if my_os in ["linux", "linux2"]:
+            button1.click(chatbot, scroll_to_output=True, inputs=[text1, cards], outputs=[display1, cards,
+                                                                                          out_text, update_cards,
+                                                                                          user_info,
+                                                                                          update_audio])  # out_text
             audio_btn.click(put_audio, inputs=update_audio, outputs=audio)
         else:
-            audio_btn.click(put_audio_windows, inputs=update_audio, outputs=audio)
+            button1.click(chatbot, scroll_to_output=True, inputs=[text1, cards], outputs=[display1, cards,
+                                                                                          out_text, update_cards,
+                                                                                          user_info,
+                                                                                          update_audio])  # out_text
+            # audio_btn.click(put_audio_windows, inputs=update_audio, outputs=audio)
         # f = gr.File("im1.png", file_types=["image"], interactive=True, visible=True)
         # button_save.click(lambda x:x,inputs=[f],outputs=[f] )
         update_cards.change(image_path_to_image, inputs=cards, outputs=gallery)
