@@ -1,0 +1,11 @@
+git+https://github.com/huggingface/diffusers
+git+https://github.com/huggingface/transformers
+pynvml
+diffusers["torch"]
+accelerate
+torch
+openai
+gradio
+huggingface_hub
+https://pypi.fury.io/balacoon/ balacoon-tts
+balacoon-tts

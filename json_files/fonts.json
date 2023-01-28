@@ -1,0 +1,14 @@
+{
+  "title_fonts": [
+    "https://github.com/google/fonts/blob/main/ofl/playfairdisplay/PlayfairDisplay%5Bwght%5D.ttf?raw=true",
+    "https://github.com/google/fonts/blob/main/ofl/dancingscript/DancingScript%5Bwght%5D.ttf?raw=true",
+    "https://github.com/google/fonts/blob/main/ofl/arsenal/Arsenal-Regular.ttf?raw=true",
+    "https://github.com/google/fonts/blob/main/ofl/allura/Allura-Regular.ttf?raw=true"
+  ],
+  "msg_fonts": [
+    "https://github.com/google/fonts/blob/main/ofl/sofiasans/SofiaSans%5Bwght%5D.ttf?raw=true",
+    "https://github.com/google/fonts/blob/main/ofl/dancingscript/DancingScript%5Bwght%5D.ttf?raw=true",
+    "https://github.com/google/fonts/blob/main/ofl/solitreo/Solitreo-Regular.ttf?raw=true",
+    "https://github.com/google/fonts/blob/main/ufl/ubuntucondensed/UbuntuCondensed-Regular.ttf?raw=true"
+  ]
+}

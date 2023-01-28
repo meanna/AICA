@@ -1,0 +1,14 @@
+{  "birthday" : ["Happy Birthday", "A year wiser!",  "Celebrate your special day!", "Let's Celebrate!"],
+  "valentine's day": ["Happy Valentine's Day", "Be My Valentine", "To my forever Valentine", "Happy Hearts Day"],
+  "sympathy" : ["With deepest sympathy", "Thinking of you in sorrow", "Sending caring thoughts", "Our hearts are with you", "In loving memory"],
+  "congratulations" : ["You did it!", "Congrats!", "Warmest congrats!", "Cheers to you!", "Celebrating your success!"],
+  "graduation" : ["Cheers to your graduation!", "Congrats, Graduate!", "Dreams come true!", "Achievement unlocked!", "A new beginning!"],
+  "wedding" : ["Best wishes", "Happily ever after", "Happily married!", "A day to remember", "Wishing you a lifetime of love"],
+  "retirement" : ["Happy Retirement!", "Enjoy your next chapter!", "Relax and enjoy!", "Time to relax!", "All the best!"],
+  "anniversary" : ["Happy Anniversary", "Celebrating love", "Cheers to many more", "Wishing you joy and happiness!", "Congratulations"],
+  "mother's day" : ["Happy Mother's Day!", "A mother's love is forever", "Thanks for all you do", "Celebrating you today", "You are amazing!"],
+  "father's day" : ["Happy Father's Day!", "Thank you for being there", "Thanks for all you do", "You're the best Dad!", "Celebrating you today"],
+  "baby shower" : ["A baby is on the way!", "A bundle of joy is coming!", "Congratulations"],
+  "get well soon" : ["Sending healing thoughts", "Get well soon!", "Wishing you a speedy recovery!", "Sending sunshine your way"],
+  "moving in" : ["Welcome home!", "A new adventure begins!", "Cheers to a new home!", "Congratulations on your new place!", "Home sweet home!"]
+  }
