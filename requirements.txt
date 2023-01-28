@@ -6,6 +6,4 @@ accelerate
 torch
 openai
 gradio
-huggingface_hub
-https://pypi.fury.io/balacoon/ balacoon-tts
-balacoon-tts
+gTTS==2.2.1

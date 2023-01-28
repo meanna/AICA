@@ -23,10 +23,7 @@ num_diffusion_steps = 5
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 print("device:", device)
-
 print("My OS:", sys.platform)
-my_os = sys.platform  # sys.platform # "windows" , sys.platform
-# sys.platform not in ["linux", "linux2"]
 
 # if no GPU, use example images
 if device == "cuda":
@@ -931,8 +928,7 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
                 """)
 
             # https://gradio.app/docs/#chatbot
-            display1 = gr.Chatbot()  # gr.outputs.Chatbot()#.style(color_map=("green", "pink")) #[("", intents[
-            # "greeting"])]
+            display1 = gr.Chatbot()
             text1 = gr.Textbox(label="You", lines=1)  # gr.inputs.Textbox(label="You", lines=2)
             button1 = gr.Button(value="send", show_label=True)
             user_info = gr.Textbox(placeholder="Your card properties", visible=True, lines=1, max_lines=100)
@@ -944,19 +940,13 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
                 # Your card
                 """)
 
-            # card = gr.Image(None).style(height=10)
-            # button_save = gr.Button("Save", show_label=True)
-
             out_text = gr.Textbox(placeholder="Options", visible=True, lines=5, max_lines=100)
             update_cards = gr.Textbox(placeholder="temp", visible=False, lines=1, max_lines=100)
-            # user_info = gr.Textbox(placeholder="Your card properties", visible=True, lines=1, max_lines=100)
-            # current_card = gr.Image(im_path,label="Your card", shape=(100, None))
             gallery = gr.Gallery(None,
                                  label="Generated images", show_label=False, elem_id="gallery"
                                  ).style(grid=2, height="100")
 
             update_audio = gr.Textbox(placeholder="temp", visible=False, lines=1, max_lines=100)
-            # update_audio_windows = gr.Textbox(placeholder="temp", visible=False, lines=1, max_lines=100)
 
             audio = gr.Audio(visible=False)
             audio_btn = gr.Button("audio")
@@ -964,7 +954,7 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
         button1.click(chatbot, scroll_to_output=True, inputs=[text1, cards], outputs=[display1, cards,
                                                                                       out_text, update_cards,
                                                                                       user_info,
-                                                                                      update_audio])  # out_text
+                                                                                      update_audio])
         audio_btn.click(put_audio, inputs=update_audio, outputs=audio)
 
         update_cards.change(image_path_to_image, inputs=cards, outputs=gallery)
