@@ -165,7 +165,7 @@ def add_message(input_img, recipient, sender, message, msg_font_size=25, msg_col
 
     # sender
     sender_x = img.size[0] - 100
-    sender_y = img.size[1] - 50
+    sender_y = img.size[1] - 20
     img_draw.text((sender_x, sender_y), sender, fill=msg_color, font=msg_font)
 
     return img
@@ -382,6 +382,7 @@ try:
     gpt3_key_succeed = True
 
 except:
+    print("openai key is not valid")
     sys.exit()
 
 print("openai.api_key", openai.api_key)
