@@ -11,6 +11,8 @@ AI card generator
 
 ## Google Colab
 
+https://colab.research.google.com/drive/1xsGjyfeuuWWK8m7CRIXFz2FQBX4O66Zy?usp=sharing
+
 ```
 !pip install -q openai
 !pip install gradio -q
