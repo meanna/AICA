@@ -16,6 +16,135 @@ import gradio as gr
 date_time_obj = datetime.now()
 timestamp_str = date_time_obj.strftime("%Y-%m-%d_%H-%M-%S")
 
+# ######################## gpt3 ######################
+
+
+gpt3 = "text-davinci-003"  # "text-davinci-003", "text-curie-001",
+
+try:
+    openai.api_key = "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"
+    completion = openai.Completion.create(
+        engine="text-curie-001",
+        prompt="write number 1:",
+        n=1,
+        max_tokens=5,
+    )
+    gpt3_key_succeed = True
+
+except:
+    print("openai key is not valid")
+    sys.exit()
+
+print("openai.api_key", openai.api_key)
+
+
+# possible parameters: https://beta.openai.com/docs/api-reference/completions/create
+def suggest_title(story, card_type, tone="funny", use_gpt3=False):
+    if use_gpt3:
+        model = gpt3
+        max_tokens = 20
+        num_texts = 3
+        if story:
+            prompt = f"Generate a very short {tone} {card_type} card slogan suitable for this story(in one line):"
+            prompt = "story:[" + story + "] " + prompt
+        else:
+            prompt = f"Generate a very short {tone} {card_type} card slogan:"
+        print("prompt:", prompt)
+        completion = openai.Completion.create(
+            engine=model,
+            prompt=prompt,
+            n=num_texts,
+            temperature=0.5,
+            max_tokens=max_tokens,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0
+        )
+        results = [completion.choices[i].text.strip() for i in range(num_texts)]
+
+        return results
+
+    return card_type_to_title[card_type]
+
+
+def improve_text(input_text, goal):
+    if not input_text:
+        return input_text
+
+    prompt = f"{input_text}. {improve_text_options_dict[goal]}"
+    print("prompt: ", prompt)
+    model = gpt3
+    max_tokens = 100
+    num_texts = 1
+    completion = openai.Completion.create(
+        engine=model,
+        prompt=prompt,
+        n=num_texts,
+        temperature=0.5,
+        max_tokens=max_tokens,
+        top_p=1.0,
+        frequency_penalty=0.0,
+        presence_penalty=0.0
+    )
+    result = completion.choices[0].text.strip()
+
+    return result
+
+
+def suggest_message(story, card_type, tone="funny", use_gpt3=False):
+    if use_gpt3:
+        model = gpt3
+        max_tokens = 50
+        num_texts = 3
+        if story:
+            prompt = f"Generate a {tone} message for {card_type} card suitable for this story:"
+            prompt = "story:[" + story + "] " + prompt
+        elif story == "1":
+            prompt = f"Generate a {tone} message for {card_type} card:"
+        print("prompt:", prompt)
+        completion = openai.Completion.create(
+            engine=model,
+            prompt=prompt,
+            n=num_texts,
+            temperature=0.5,
+            max_tokens=max_tokens,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0
+        )
+        results = [completion.choices[i].text.strip() for i in range(num_texts)]
+
+        return results
+    return card_type_to_message[card_type]
+
+
+def generate_poem(story, card_type):
+    model = gpt3
+    max_tokens = 50
+    num_texts = 3
+    if not story or story == "1":
+        # story = story_suggestions[card_type][-1]
+        prompt = f"Please generate a short poem for a {card_type} card:"
+
+    else:
+        prompt = f"I want to write a poem for a {card_type} card." \
+                 f" Please generate a short poem related to the following keywords/story: '{story}':"
+    print("prompt:", prompt)
+    completion = openai.Completion.create(
+        engine=model,
+        prompt=prompt,
+        n=num_texts,
+        temperature=0.5,
+        max_tokens=max_tokens,
+        top_p=1.0,
+        frequency_penalty=0.0,
+        presence_penalty=0.0
+    )
+    results = [completion.choices[i].text.strip() for i in range(num_texts)]
+
+    return results
+
+
 # ######################## diffusion models ######################
 diffusion_model = "runwayml/stable-diffusion-v1-5"
 
@@ -29,12 +158,6 @@ print("My OS:", sys.platform)
 if device == "cuda":
 
     scheduler_list = ["DPMSolverMultistep", "EulerAncestralDiscrete", "EulerDiscrete"]
-
-    # if device == "cpu":
-    #     pipeline = DiffusionPipeline.from_pretrained(diffusion_model)
-    # else:
-    #     pipeline = DiffusionPipeline.from_pretrained(diffusion_model, torch_dtype=torch.float16)
-
     pipeline = DiffusionPipeline.from_pretrained(diffusion_model)
     pipline = pipeline.to(device)
 
@@ -280,18 +403,6 @@ def get_cards_with_diff_title_styles(input_card, title, seed):
     return image_with_title_list
 
 
-#
-# input_card = Image.open("images/bookworm_1.png")
-# r = get_cards_with_diff_title_styles(input_card, title="Happy Birthday To You", seed=1)
-#
-# c = 0
-# for i, _ in r:
-#     i.show()
-#     c +=1
-#     if c == 1:
-#         break
-#
-# sys.exit()
 # ######################## chatbot config ######################
 
 def enum_list(input_list):
@@ -365,135 +476,6 @@ response_after_card_generated = f"Great! Thank you. We have generated 4 cards fo
 
 greeting = f"Hello! I am AICA, your AI Card Artist. What kind of card would you like to generate? " \
            f"You can see the options on the right side. To choose your option, type a number (without a dot)."
-
-# ######################## gpt3 ######################
-
-
-gpt3 = "text-davinci-003"  # "text-davinci-003", "text-curie-001",
-
-try:
-    openai.api_key = "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"
-    completion = openai.Completion.create(
-        engine="text-curie-001",
-        prompt="write number 1:",
-        n=1,
-        max_tokens=5,
-    )
-    gpt3_key_succeed = True
-
-except:
-    print("openai key is not valid")
-    #sys.exit()
-
-print("openai.api_key", openai.api_key)
-
-
-# possible parameters: https://beta.openai.com/docs/api-reference/completions/create
-def suggest_title(story, card_type, tone="funny", use_gpt3=False):
-    if use_gpt3:
-        model = gpt3
-        max_tokens = 20
-        num_texts = 3
-        if story:
-            prompt = f"Generate a very short {tone} {card_type} card slogan suitable for this story(in one line):"
-            prompt = "story:[" + story + "] " + prompt
-        else:
-            prompt = f"Generate a very short {tone} {card_type} card slogan:"
-        print("prompt:", prompt)
-        completion = openai.Completion.create(
-            engine=model,
-            prompt=prompt,
-            n=num_texts,
-            temperature=0.5,
-            max_tokens=max_tokens,
-            top_p=1.0,
-            frequency_penalty=0.0,
-            presence_penalty=0.0
-        )
-        results = [completion.choices[i].text.strip() for i in range(num_texts)]
-
-        return results
-
-    return card_type_to_title[card_type]
-
-
-def improve_text(input_text, goal):
-    if not input_text:
-        return input_text
-
-    prompt = f"{input_text}. {improve_text_options_dict[goal]}"
-    print("prompt: ", prompt)
-    model = gpt3
-    max_tokens = 100
-    num_texts = 1
-    completion = openai.Completion.create(
-        engine=model,
-        prompt=prompt,
-        n=num_texts,
-        temperature=0.5,
-        max_tokens=max_tokens,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.0
-    )
-    result = completion.choices[0].text.strip()
-
-    return result
-
-
-def suggest_message(story, card_type, tone="funny", use_gpt3=False):
-    if use_gpt3:
-        model = gpt3
-        max_tokens = 50
-        num_texts = 3
-        if story:
-            prompt = f"Generate a {tone} message for {card_type} card suitable for this story:"
-            prompt = "story:[" + story + "] " + prompt
-        elif story == "1":
-            prompt = f"Generate a {tone} message for {card_type} card:"
-        print("prompt:", prompt)
-        completion = openai.Completion.create(
-            engine=model,
-            prompt=prompt,
-            n=num_texts,
-            temperature=0.5,
-            max_tokens=max_tokens,
-            top_p=1.0,
-            frequency_penalty=0.0,
-            presence_penalty=0.0
-        )
-        results = [completion.choices[i].text.strip() for i in range(num_texts)]
-
-        return results
-    return card_type_to_message[card_type]
-
-
-def generate_poem(story, card_type):
-    model = gpt3
-    max_tokens = 50
-    num_texts = 3
-    if not story or story == "1":
-        # story = story_suggestions[card_type][-1]
-        prompt = f"Please generate a short poem for a {card_type} card:"
-
-    else:
-        prompt = f"I want to write a poem for a {card_type} card." \
-                 f" Please generate a short poem related to the following keywords/story: '{story}':"
-    print("prompt:", prompt)
-    completion = openai.Completion.create(
-        engine=model,
-        prompt=prompt,
-        n=num_texts,
-        temperature=0.5,
-        max_tokens=max_tokens,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.0
-    )
-    results = [completion.choices[i].text.strip() for i in range(num_texts)]
-
-    return results
-
 
 # ######################## chatbot ######################
 
@@ -590,8 +572,7 @@ def chatbot(message, cards):
 
         else:  # if user type his own style prompt
             card_spec["user_prompt"] += " " + message
-            # response = f"Please choose a number from the right pane."
-            # user_choices = enum_list(image_styles_options)
+
         print("prompt to generate:", card_spec["user_prompt"])
         cards = generate_cards(card_spec["user_prompt"], num_steps=num_diffusion_steps)
         response = response_after_card_generated
@@ -695,13 +676,10 @@ def chatbot(message, cards):
                 card = cards[-1][0]
                 title = title_suggestions[int(message) - 1]
                 card_spec["title"] = title
-                # card_with_title = (add_title(card, title), seed)  # todo
-                cards = get_cards_with_diff_title_styles(card, title, seed)  # todo
+                cards = get_cards_with_diff_title_styles(card, title, seed)
 
                 bot_actions.append("return_card_with_title")
-                # response = f"Do you want to put a message below your card? {enum_list(yes_no_options)}"
-                # bot_actions.append("return_card_with_title")
-                # bot_actions.append("title_done")
+
         else:
             response = f"Please choose a number listed in the option box."
             user_choices = enum_list(title_suggestions + ["..."])
@@ -959,10 +937,9 @@ def chatbot(message, cards):
     user_info = "\n".join(user_info)
     user_choices = "\n".join([str(i) for i in user_choices])
 
-
     if cards:
-
         im = cards[-1][0]
+        print(type(im))
         im.save("im.png")
     print(audio_name)
     return history, cards, user_choices, cards, user_info, audio_name
@@ -992,9 +969,6 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
             button1 = gr.Button(value="send", show_label=True)
             user_info = gr.Textbox(placeholder="Your card properties", visible=True, lines=1, max_lines=100)
 
-            #card = gr.Image(None).style(height=10)
-
-
         with gr.Column():
             gr.Markdown(
                 """
@@ -1022,8 +996,7 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
                                                                                       update_audio])
         audio_btn.click(put_audio, inputs=update_audio, outputs=audio)
 
-
-        button_save.click(lambda x:"im.png",inputs=[f],outputs=[f] )
+        button_save.click(lambda x: "im.png", inputs=[f], outputs=[f])
 
         update_cards.change(image_path_to_image, inputs=cards, outputs=gallery)
 
