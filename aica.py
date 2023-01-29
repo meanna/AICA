@@ -371,62 +371,18 @@ greeting = f"Hello! I am AICA, your AI Card Artist. What kind of card would you 
 
 gpt3 = "text-davinci-003"  # "text-davinci-003", "text-curie-001",
 
-gpt3_key_succeed = False
+try:
+    openai.api_key = "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"
+    completion = openai.Completion.create(
+        engine="text-curie-001",
+        prompt="write number 1:",
+        n=1,
+        max_tokens=5,
+    )
+    gpt3_key_succeed = True
 
-while not gpt3_key_succeed:
-    try:
-        openai.api_key = "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"
-        completion = openai.Completion.create(
-            engine="text-curie-001",
-            prompt="write number 1:",
-            n=1,
-            max_tokens=5,
-        )
-        gpt3_key_succeed = True
-        break
-    except:
-        pass
-
-    try:
-        openai.api_key = "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"
-        completion = openai.Completion.create(
-            engine="text-curie-001",
-            prompt="write number 1:",
-            n=1,
-            max_tokens=5,
-        )
-        gpt3_key_succeed = True
-        break
-    except:
-        pass
-
-    try:
-        openai.api_key = "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"
-        completion = openai.Completion.create(
-            engine="text-curie-001",
-            prompt="write number 1:",
-            n=1,
-            max_tokens=5,
-        )
-        gpt3_key_succeed = True
-        break
-    except:
-        pass
-
-    try:
-        openai.api_key = "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"
-        completion = openai.Completion.create(
-            engine="text-curie-001",
-            prompt="write number 1:",
-            n=1,
-            max_tokens=5,
-        )
-
-        gpt3_key_succeed = True
-        break
-    except:
-        print("openai key is not valid...")
-        sys.exit()
+except:
+    sys.exit()
 
 print("openai.api_key", openai.api_key)
 
