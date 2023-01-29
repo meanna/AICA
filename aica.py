@@ -383,7 +383,7 @@ try:
 
 except:
     print("openai key is not valid")
-    sys.exit()
+    #sys.exit()
 
 print("openai.api_key", openai.api_key)
 
@@ -959,6 +959,11 @@ def chatbot(message, cards):
     user_info = "\n".join(user_info)
     user_choices = "\n".join([str(i) for i in user_choices])
 
+
+    if cards:
+
+        im = cards[-1][0]
+        im.save("im.png")
     print(audio_name)
     return history, cards, user_choices, cards, user_info, audio_name
 
@@ -987,6 +992,9 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
             button1 = gr.Button(value="send", show_label=True)
             user_info = gr.Textbox(placeholder="Your card properties", visible=True, lines=1, max_lines=100)
 
+            #card = gr.Image(None).style(height=10)
+
+
         with gr.Column():
             gr.Markdown(
                 """
@@ -995,21 +1003,27 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
                 """)
 
             out_text = gr.Textbox(placeholder="Options", visible=True, lines=5, max_lines=100)
+
             update_cards = gr.Textbox(placeholder="temp", visible=False, lines=1, max_lines=100)
             gallery = gr.Gallery(None,
                                  label="Generated images", show_label=False, elem_id="gallery"
                                  ).style(grid=2, height="100")
 
+            button_save = gr.Button("Save", show_label=True)
             update_audio = gr.Textbox(placeholder="temp", visible=False, lines=1, max_lines=100)
 
             audio = gr.Audio(visible=False)
             audio_btn = gr.Button("audio")
+            f = gr.File(None, file_types=["image"], interactive=True, visible=True)
 
         button1.click(chatbot, scroll_to_output=True, inputs=[text1, cards], outputs=[display1, cards,
                                                                                       out_text, update_cards,
                                                                                       user_info,
                                                                                       update_audio])
         audio_btn.click(put_audio, inputs=update_audio, outputs=audio)
+
+
+        button_save.click(lambda x:"im.png",inputs=[f],outputs=[f] )
 
         update_cards.change(image_path_to_image, inputs=cards, outputs=gallery)
 
