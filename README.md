@@ -19,8 +19,6 @@ AI card generator
 !pip install -q pynvml
 !pip install -q diffusers["torch"]
 !pip install accelerate
-
-
 !pip install -q gTTS==2.2.1
 
 ```

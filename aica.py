@@ -375,7 +375,7 @@ gpt3_key_succeed = False
 
 while not gpt3_key_succeed:
     try:
-        openai.api_key = "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"
+        openai.api_key = "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"
         completion = openai.Completion.create(
             engine="text-curie-001",
             prompt="write number 1:",
