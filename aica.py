@@ -899,7 +899,11 @@ def chatbot(message, cards):
         if "title" in card_spec and "message" in card_spec:
             response += " You can also click the play button below your card to read the message out loud."
             response += thank_you_message
-            text_to_say = card_spec["title"] + ". " + card_spec["message"]
+            message_clean = card_spec["message"]
+            message_clean = message_clean.replace('"', "")
+            message_clean = message_clean.replace("'", "")
+            text_to_say = card_spec["title"] + ". " + "Dear " + card_spec["sender"] + message_clean
+            text_to_say += "from " + card_spec["recipient"]
             print("text_to_say:", text_to_say)
             audio_name = "message" + timestamp_str + ".wav"
             text_to_speech(text_to_say, output_path=audio_name)  # save speech file
