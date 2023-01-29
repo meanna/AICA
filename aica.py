@@ -129,34 +129,7 @@ title_fonts = font_dict["title_fonts"]
 msg_fonts = font_dict["msg_fonts"]
 
 
-def add_border_title(img, title, font, font_size=50, color="white"):
-    """takes a chosen img and returns img with border and title"""
-
-    # left, top, right, bottom
-    border = (39, 39, 39, 156)
-    # image = Image.open(img)
-    image = img.copy()
-    image_border = ImageOps.expand(image, border=border, fill=color)
-
-    req = requests.get(font)
-    title_font = ImageFont.truetype(BytesIO(req.content), font_size)
-
-    # center text horizontally
-    font_w, font_h = title_font.getsize(title)
-    title_x = (image_border.size[0] - font_w) / 2
-    title_y = 80
-    image_draw = ImageDraw.Draw(image_border)
-
-    # draw text multiple times to create shadow
-    image_draw.text((title_x - 1, title_y), title, fill="gray", font=title_font)
-    image_draw.text((title_x + 1, title_y), title, fill=color, font=title_font)
-    image_draw.text((title_x, title_y - 1), title, fill="gray", font=title_font)
-    image_draw.text((title_x, title_y + 1), title, fill=color, font=title_font)
-
-    return image_border
-
-
-def add_message(input_img, recipient, sender, message, msg_font=msg_fonts[0], msg_font_size=25, msg_color="black"):
+def add_message(input_img, recipient, sender, message, msg_font_size=25, msg_color="black"):
     """takes a chosen image with title and returns img with title and message"""
     msg_font = msg_fonts[0]
     img = input_img.copy()
@@ -167,16 +140,27 @@ def add_message(input_img, recipient, sender, message, msg_font=msg_fonts[0], ms
     # left, top, right, bottom
     # border = (39, 40, 39, 156)
 
-    # recipient
-    recipient_x = 60
-    recipient_y = img.size[1] - 135
+    w, h = input_img.size
+    print("w", w)
+    print("h", h)
+
+    if h > 512 + 80:  # 200
+
+        recipient_x = 60
+        recipient_y = h - 160
+    else:
+        # recipient
+        recipient_x = 60
+        recipient_y = 512 + 30 + 5
 
     # apply text wrap to prevent bleed
-    msg_list = textwrap.wrap(message, 70)
-    msg_new = '\n'.join(msg_list)
+    # msg_list = textwrap.wrap(message, 50)
+    msg_new = wrap_text(message, 40)
+
+    # msg_new = '\n'.join(msg_list)
 
     space = " " * 4
-    recipient_msg = "Dear " + recipient + ",\n" + space + msg_new
+    recipient_msg = "Dear " + recipient + ",\n\n" + space + msg_new
     img_draw.text((recipient_x, recipient_y), recipient_msg, fill=msg_color, font=msg_font)
 
     # sender
@@ -187,14 +171,127 @@ def add_message(input_img, recipient, sender, message, msg_font=msg_fonts[0], ms
     return img
 
 
-def get_cards_with_diff_title_styles(input_card, title, seed, fonts=title_fonts):
-    outputs = []
-    for f in fonts:
-        img = add_border_title(input_card, title, f)
-        outputs.append((img, seed))
-    return outputs
+def wrap_text(text, n=4):
+    # words = text.split()
+    i = 0
+    result = ""
+    for char in text:
+        # print(char)
+        if (i == n):
+            result += "\n"
+            i = 0
+        result += char
+        i += 1
+    return result
 
 
+def add_border(img, extend_top=False, color="white"):
+    # left, top, right, bottom
+    border = (30, 30, 30, 200)
+
+    if extend_top:
+        border = (30, 80, 30, 200)
+
+    # image = Image.open(img)
+    image = img.copy()
+    img_border = ImageOps.expand(image, border=border, fill=color)
+
+    return img_border, extend_top
+
+
+def add_title(img, title, font, pos, color="white"):
+    """takes a chosen img and returns img with title"""
+
+    req = requests.get(font)
+    font_size = 1  # starting size
+    title_font = ImageFont.truetype(BytesIO(req.content), font_size)
+
+    # proportion of text wrt to image
+    img_frac = 0.75
+    breakpoint = img_frac * img[0].size[0]
+    jumpsize = 75
+
+    while True:
+
+        if title_font.getsize(title)[0] < breakpoint:
+            font_size += jumpsize
+        else:
+            jumpsize = jumpsize // 2
+            font_size -= jumpsize
+
+        title_font = ImageFont.truetype(BytesIO(req.content), font_size)
+        if jumpsize <= 1:
+            break
+
+    # center text horizontally
+    font_w, font_h = title_font.getsize(title)
+    title_x = (img[0].size[0] - font_w) / 2
+
+    title_y = 50
+
+    if pos == "top":
+        title_y = title_y
+        if img[1] == True:
+            title_y -= 33
+    elif pos == "center":
+        title_y = 256
+    elif pos == "bottom":
+        title_y = 512 - font_h
+        if img[1] == True:
+            title_y = 562 - font_h
+
+    image_draw = ImageDraw.Draw(img[0])
+
+    # draw text multiple times to create shadow
+    image_draw.text((title_x - 1, title_y), title, fill="gray", font=title_font)
+    image_draw.text((title_x + 1, title_y), title, fill=color, font=title_font)
+    image_draw.text((title_x, title_y - 1), title, fill="gray", font=title_font)
+    image_draw.text((title_x, title_y + 1), title, fill=color, font=title_font)
+
+    return img[0]
+
+
+colors = ["white", "#458B00", "#FF9912", "#5F9EA0", "#838B8B", "#EE1289"]
+positions = ["top", "center", "bottom"]
+
+
+def get_cards_with_diff_title_styles(input_card, title, seed):
+    # apply text wrap to prevent bleed
+    title = textwrap.wrap(title, 500)
+    title = '\n'.join(title)
+
+    image_with_title_list = []
+    for pos in positions:
+        for _ in range(3):
+            # here we generate 2 styles of card with title
+            # one is with title at the top,
+            # the other with title at the top border
+            color = random.choice(colors)
+            font = random.choice(title_fonts)
+            # add the border, 4 sides, top and bottom are bigger
+            img_no_extend = add_border(input_card, False, "white")
+            img_t1 = add_title(img_no_extend, title, font, pos, color)
+            image_with_title_list.append((img_t1, seed))
+            if pos == "top":
+                img_no_extend = add_border(input_card, True, "white")
+                img_t2 = add_title(img_no_extend, title, font, pos, color)
+                image_with_title_list.append((img_t2, seed))
+
+    return image_with_title_list
+
+
+#
+# input_card = Image.open("images/bookworm_1.png")
+# r = get_cards_with_diff_title_styles(input_card, title="Happy Birthday To You", seed=1)
+#
+# c = 0
+# for i, _ in r:
+#     i.show()
+#     c +=1
+#     if c == 1:
+#         break
+#
+# sys.exit()
 # ######################## chatbot config ######################
 
 def enum_list(input_list):
@@ -221,7 +318,7 @@ def image_path_to_image(cards):
 # user options and response from bot
 card_types = list(card_type_to_message.keys())
 
-num_title_variations = 4
+num_title_variations = 12
 
 image_styles_options = list(image_styles)
 
@@ -257,16 +354,16 @@ good_bye_response_poem = "The poem is added to your card so we are finished now.
 story_example_ending = "\n\nOr type 1 to skip."
 
 good_bye_message = "Great. We're happy you're satisfied with the card." \
-                   " Now you can download it and send it as e-card by email or print it out. " + thank_you_message
+                   " Now you can download it and send it as an e-card or print it out. " + thank_you_message
 yes_no_options = ["yes", "no"]
-title_options = ["use AICA suggestions", "you idea"]
-message_options = ["use AICA suggestions", "use AICA poem generator", "you idea"]
+title_options = ["use AICA suggestions", "your idea"]
+message_options = ["use AICA suggestions", "use AICA poem generator", "your idea"]
 next_steps_after_picking_best_card = ["I'm done", "I want to modify the card", "I want to add a title and a message"]
 
 response_after_card_generated = f"Great! Thank you. We have generated 4 cards for you. " \
                                 f"Let's take a look at them on the right pane."
 
-greeting = f"Hello! I am AICA, your AI card generator. What kind of card would you like to generate? " \
+greeting = f"Hello! I am AICA, your AI Card Artist. What kind of card would you like to generate? " \
            f"You can see the options on the right side. To choose your option, type a number (without a dot)."
 
 # ######################## gpt3 ######################
@@ -278,7 +375,7 @@ gpt3_key_succeed = False
 
 while not gpt3_key_succeed:
     try:
-        openai.api_key = "sk-fWGJqwTkVnVQ3dIbWyDST3BlbkFJH923622yJR"
+        openai.api_key = "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"
         completion = openai.Completion.create(
             engine="text-curie-001",
             prompt="write number 1:",
@@ -338,7 +435,7 @@ print("openai.api_key", openai.api_key)
 def suggest_title(story, card_type, tone="funny", use_gpt3=False):
     if use_gpt3:
         model = gpt3
-        max_tokens = 30
+        max_tokens = 20
         num_texts = 3
         if story:
             prompt = f"Generate a very short {tone} {card_type} card slogan suitable for this story(in one line):"
@@ -370,7 +467,7 @@ def improve_text(input_text, goal):
     prompt = f"{input_text}. {improve_text_options_dict[goal]}"
     print("prompt: ", prompt)
     model = gpt3
-    max_tokens = 200
+    max_tokens = 100
     num_texts = 1
     completion = openai.Completion.create(
         engine=model,
@@ -390,12 +487,12 @@ def improve_text(input_text, goal):
 def suggest_message(story, card_type, tone="funny", use_gpt3=False):
     if use_gpt3:
         model = gpt3
-        max_tokens = 200
+        max_tokens = 50
         num_texts = 3
         if story:
             prompt = f"Generate a {tone} message for {card_type} card suitable for this story:"
             prompt = "story:[" + story + "] " + prompt
-        else:
+        elif story == "1":
             prompt = f"Generate a {tone} message for {card_type} card:"
         print("prompt:", prompt)
         completion = openai.Completion.create(
@@ -416,7 +513,7 @@ def suggest_message(story, card_type, tone="funny", use_gpt3=False):
 
 def generate_poem(story, card_type):
     model = gpt3
-    max_tokens = 100
+    max_tokens = 50
     num_texts = 3
     if not story or story == "1":
         # story = story_suggestions[card_type][-1]
@@ -460,7 +557,7 @@ def chatbot(message, cards):
     if "type" in card_spec:
         story_suggestions_points = add_bullet_points(story_suggestions[card_spec["type"]])
         story_examples_ = ["Tell us about good memories between you and the recipient or give us a few keywords."] + [
-            "\nFor examples,"] + story_suggestions_points + [story_example_ending]
+            "\nExamples:"] + story_suggestions_points + [story_example_ending]
 
     if not bot_actions or bot_actions[-1] == "final_add_audio":
         response = greeting
@@ -473,7 +570,7 @@ def chatbot(message, cards):
 
             card_spec["type"] = card_types[int(message) - 1]
             response += f" You picked '{card_spec['type']} card'."
-            response += f" Next, please tell me the sender name."
+            response += f" Next, please tell me your name."
             bot_actions.append("asked_for_sender_name")
 
         else:
@@ -482,13 +579,13 @@ def chatbot(message, cards):
 
     elif bot_actions[-1] == "asked_for_sender_name":
         card_spec["sender"] = message
-        response += f"Thank you. The sender name is {message}."
-        response += f" Next, please tell me the recipient name."
+        response += f"Thank you. The sender's name is {message}."
+        response += f" Next, please tell me the recipient's name."
         bot_actions.append("asked_for_recipient_name")
 
     elif bot_actions[-1] == "asked_for_recipient_name":
         card_spec["recipient"] = message
-        response += f"Thank you. The recipient name is {message}."
+        response += f"Thank you. The recipient's name is {message}."
         response += f" Next, what image should we draw on your card?" \
                     f" We've listed a few suggestions for you." \
                     f" Please see the right pane and choose a number."
@@ -568,7 +665,7 @@ def chatbot(message, cards):
                 bot_actions.append("final")
             elif message == "2":
                 response = "You want to modify the card? Sure, then please give us a new prompt " \
-                           "that contain description about things you want to change. "
+                           "that contains description about things you want to change. "
                 user_choices = [f"You current prompt is: '{card_spec['user_prompt']}'",
                                 "------------------" * 2,
                                 "Example:", "old prompt = 'A drawing of a cat'",
@@ -576,7 +673,7 @@ def chatbot(message, cards):
                 bot_actions.append("modify_card")
             elif message == "3":
                 # response = f"What should be the title of you card? {enum_list(title_options)}"
-                response = f"What should be the title of you card?"
+                response = f"What should be the title of your card?"
                 user_choices = enum_list(title_options)
                 bot_actions.append("add_title")
         else:
@@ -650,7 +747,7 @@ def chatbot(message, cards):
                 # bot_actions.append("title_done")
         else:
             response = f"Please choose a number listed in the option box."
-            user_choices = enum_list(title_suggestions)
+            user_choices = enum_list(title_suggestions + ["..."])
 
     elif bot_actions[-1] == "user_gave_title":
 
@@ -702,24 +799,24 @@ def chatbot(message, cards):
             if message == "1":  # user answered "use AICA suggestions"
                 if "story" not in card_spec:
                     response = "Give me more information about you and the recipient of the card" \
-                               " and I will suggest a personalized message for you card." \
+                               " and I will suggest a personalized message for your card." \
                                " If you do not want to write a story, just type 1, and we will " \
                                "generate suggestions based on your card type:)"
                     user_choices = story_examples_
                 else:
-                    response = "You've already told us about your story, so we will generate suggestions based on " \
+                    response = "You've already told us about your story, so I will generate suggestions based on " \
                                "this story." \
                                " Please type any key to proceed."
                 bot_actions.append("user_gave_story_for_message")
             elif message == "2":  # poem
                 response = "You want to generate a poem? Sure, then type in a few keywords or a story." \
                            " Or type 1 to generate a poem based only on your card type."
-                user_choices = ["For example,"] + add_bullet_points(story_suggestions[card_spec["type"]])
+                user_choices = ["Example:"] + add_bullet_points(story_suggestions[card_spec["type"]])
 
                 user_choices += [" \nOr type 1 to generate a poem based on your card type."]
                 bot_actions.append("user_wants_poem")
             else:  # user pick "your idea"
-                response = "Tell us what we should write under the card."
+                response = "Tell us what I should write under the card."
                 bot_actions.append("user_gave_message")
 
         else:
@@ -772,14 +869,14 @@ def chatbot(message, cards):
                 bot_actions.append("add_message_to_card")
 
             elif message == "2":  # change message
-                response = "Tell us what we should write under the card."
+                response = "Tell us what I should write under the card."
                 bot_actions.append("user_gave_message")
             else:
                 goal = improve_text_options[int(message) - 1]
                 # text_improve_goal = improve_text_options_dict[goal]
                 new_text = improve_text(card_spec["message"], goal)
                 card_spec["improved_text"] = new_text
-                response = "We've adjusted your text. You can see the result on the right pane." \
+                response = "I've adjusted your text. You can see the result on the right pane." \
                            " Tell us if you like it and choose the next step."
                 user_choices = ["Result:"] + [new_text] + ["---" * 20] + ["Next steps:"] + enum_list(poem_options)
                 bot_actions.append("after_improve_text")
@@ -850,7 +947,7 @@ def chatbot(message, cards):
     if bot_actions[-1] == "return_card_with_title":
         response += choose_the_best_card
         bot_actions.append("picked_best_card_with_title")
-        user_choices = enum_list(card_variations_options)
+        user_choices = enum_list(card_variations_options + ["..."])
 
     if bot_actions[-1] == "add_message_to_card":
         m = card_spec["message"]
@@ -923,7 +1020,7 @@ with gr.Blocks(css=".gradio-container {font-size: 20}") as demo:
         with gr.Column():
             gr.Markdown(
                 """
-                # AICA
+                # AICA: AI Card Artist
                 Tell AICA to generate a personalized card for you!
                 """)
 
